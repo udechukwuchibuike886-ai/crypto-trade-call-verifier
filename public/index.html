@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CallCred — Proof of Accuracy</title>
+<style>
+  :root {
+    --ink: #0e1420; --ink-raised: #141b2a;
+    --paper-dim: #a9a492; --rule: #2a3346;
+    --win: #5c8a5c; --loss: #a85c4f; --gold: #c9a24b;
+    --text: #e8e4d8; --text-dim: #8b92a3;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--ink); color: var(--text);
+    font-family: Georgia, 'Iowan Old Style', serif;
+    padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .mono { font-family: 'SF Mono', 'JetBrains Mono', Consolas, monospace; }
+
+  header { padding: 28px 20px 20px; border-bottom: 1px solid var(--rule); }
+  .brand { font-size: 1.1rem; color: var(--paper-dim); margin: 0 0 4px; }
+  .brand b { color: var(--text); }
+  .headline-row { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .headline-num { font-size: 3.2rem; font-weight: 700; color: var(--gold); line-height: 1; }
+  .headline-label { font-size: 0.9rem; color: var(--text-dim); max-width: 24ch; }
+
+  section { padding: 22px 20px; border-bottom: 1px solid var(--rule); }
+  h2 { font-size: 1rem; font-weight: 600; margin: 0 0 14px; color: var(--paper-dim); }
+
+  .setup-row { display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 0; border-bottom: 1px solid var(--rule); font-size: 0.92rem; }
+  .setup-row:last-child { border-bottom: none; }
+  .setup-bar-bg { flex: 1; height: 5px; background: var(--ink-raised); margin: 0 12px; border-radius: 3px; overflow: hidden; }
+  .setup-bar { height: 100%; background: var(--gold); }
+
+  form { display: grid; gap: 10px; }
+  label { font-size: 0.8rem; color: var(--text-dim); display: block; margin-bottom: 4px; }
+  input, select { width: 100%; background: var(--ink-raised); border: 1px solid var(--rule);
+    color: var(--text); padding: 10px; border-radius: 4px; font-family: inherit; font-size: 0.95rem; }
+  button { background: var(--gold); color: var(--ink); border: none; padding: 12px;
+    border-radius: 4px; font-weight: 700; font-size: 0.9rem; cursor: pointer; font-family: inherit; }
+  button.secondary { background: transparent; color: var(--paper-dim); border: 1px solid var(--rule); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  #askResults { margin-top: 12px; font-size: 0.88rem; color: var(--text-dim); }
+  #askResults div { padding: 8px 0; border-bottom: 1px solid var(--rule); }
+
+  .ledger-entry { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px;
+    padding: 14px 0; border-bottom: 1px solid var(--rule); }
+  .ledger-entry:first-child { padding-top: 0; }
+  .entry-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .asset { font-weight: 700; font-size: 1.02rem; }
+  .setup { color: var(--text-dim); font-size: 0.82rem; }
+  .stamp { font-family: 'SF Mono', Consolas, monospace; font-size: 0.7rem; letter-spacing: 0.07em;
+    padding: 3px 7px; border: 1px solid currentColor; border-radius: 2px; transform: rotate(-2deg); display: inline-block; }
+  .stamp.win { color: var(--win); } .stamp.loss { color: var(--loss); } .stamp.pending { color: var(--paper-dim); }
+  .entry-meta { color: var(--text-dim); font-size: 0.8rem; grid-column: 1 / -1; }
+  .entry-price { text-align: right; font-size: 0.92rem; }
+  .entry-price .mono { color: var(--text-dim); font-size: 0.75rem; display: block; }
+
+  footer { padding: 20px 20px 36px; color: var(--text-dim); font-size: 0.8rem; }
+  footer b { color: var(--paper-dim); }
+  .empty { color: var(--text-dim); font-size: 0.9rem; padding: 10px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="brand"><b>CallCred</b> · proof of accuracy</p>
+  <div class="headline-row">
+    <div class="headline-num" id="winRate">—</div>
+    <div class="headline-label" id="winRateLabel">Log your first call to start building a record.</div>
+  </div>
+</header>
+
+<section>
+  <h2>Log a new call</h2>
+  <form id="callForm">
+    <div class="row2">
+      <div><label>Asset</label>
+        <select name="asset" required>
+          <option value="BTC">BTC</option><option value="ETH">ETH</option>
+          <option value="SOL">SOL</option><option value="MATIC">MATIC</option>
+        </select>
+      </div>
+      <div><label>Direction</label>
+        <select name="direction" required>
+          <option value="long">Long</option><option value="short">Short</option>
+        </select>
+      </div>
+    </div>
+    <div><label>Setup type</label>
+      <select name="setupType" required>
+        <option>Breakout & Retest</option><option>Liquidity Sweep / SFP</option>
+        <option>News / Event Momentum</option><option>Range Reversal</option>
+      </select>
+    </div>
+    <div class="row2">
+      <div><label>Conviction</label>
+        <select name="conviction">
+          <option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option>
+        </select>
+      </div>
+      <div><label>Entry price (USD)</label>
+        <input type="number" step="any" name="entryPrice" required placeholder="e.g. 80321.97">
+      </div>
+    </div>
+    <button type="submit">Log call</button>
+  </form>
+</section>
+
+<section>
+  <h2>Credibility by setup</h2>
+  <div id="setupStats"><p class="empty">No verified calls yet.</p></div>
+  <button class="secondary" id="verifyBtn" style="margin-top:12px;width:100%">Check pending calls now</button>
+</section>
+
+<section>
+  <h2>Ask the ledger</h2>
+  <form id="askForm" style="display:flex;gap:8px;">
+    <input type="text" name="q" placeholder="e.g. how did my breakout calls do?" style="flex:1">
+    <button type="submit" style="width:auto;padding:10px 16px;">Ask</button>
+  </form>
+  <div id="askResults"></div>
+</section>
+
+<section>
+  <h2>The ledger</h2>
+  <div id="ledger"><p class="empty">Loading…</p></div>
+</section>
+
+<footer>
+  Every entry here is written permanently to <b>Walrus Memory</b> on Sui Mainnet and verified against live <b>Tatum</b> price data. Nothing is edited after the fact.
+</footer>
+
+<script>
+async function loadAll() {
+  const [calls, stats] = await Promise.all([
+    fetch('/api/calls').then(r => r.json()),
+    fetch('/api/stats').then(r => r.json()),
+  ]);
+  renderStats(stats);
+  renderLedger(calls);
+}
+
+function renderStats(stats) {
+  const num = document.getElementById('winRate');
+  const label = document.getElementById('winRateLabel');
+  if (stats.overallWinRate === null) {
+    num.textContent = '—';
+    label.textContent = 'No verified calls yet — log one above to start.';
+  } else {
+    num.textContent = stats.overallWinRate + '%';
+    label.textContent = `of your last ${stats.totalVerified} verified calls`;
+  }
+
+  const container = document.getElementById('setupStats');
+  const entries = Object.entries(stats.bySetup || {});
+  if (!entries.length) { container.innerHTML = '<p class="empty">No verified calls yet.</p>'; return; }
+  container.innerHTML = entries.map(([setup, s]) => {
+    const pct = s.total ? Math.round((s.wins / s.total) * 100) : 0;
+    return `<div class="setup-row"><span>${setup}</span>
+      <div class="setup-bar-bg"><div class="setup-bar" style="width:${pct}%"></div></div>
+      <span class="mono">${s.wins}/${s.total}</span></div>`;
+  }).join('');
+}
+
+function renderLedger(calls) {
+  const container = document.getElementById('ledger');
+  if (!calls.length) { container.innerHTML = '<p class="empty">No calls logged yet.</p>'; return; }
+  container.innerHTML = calls.map(c => {
+    const stampClass = c.status === 'win' ? 'win' : c.status === 'loss' ? 'loss' : 'pending';
+    const stampText = c.status === 'pending' ? 'PENDING' : `VERIFIED · ${c.status.toUpperCase()}`;
+    return `<div class="ledger-entry">
+      <div class="entry-top">
+        <span class="asset">${c.asset}</span>
+        <span class="setup">${c.setupType}</span>
+        <span class="stamp ${stampClass}">${stampText}</span>
+      </div>
+      <div class="entry-price">$${Number(c.entryPrice).toLocaleString()}<span class="mono">entry</span></div>
+      <div class="entry-meta">Logged ${new Date(c.loggedAt).toLocaleString()} · ${c.direction} · ${c.conviction} conviction</div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('callForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  await fetch('/api/calls', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+  e.target.reset();
+  await loadAll();
+});
+
+document.getElementById('verifyBtn').addEventListener('click', async () => {
+  await fetch('/api/verify-pending', { method: 'POST' });
+  await loadAll();
+});
+
+document.getElementById('askForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const q = new FormData(e.target).get('q');
+  const res = await fetch('/api/ask?q=' + encodeURIComponent(q)).then(r => r.json());
+  const box = document.getElementById('askResults');
+  box.innerHTML = res.results && res.results.length
+    ? res.results.map(r => `<div>${r}</div>`).join('')
+    : '<div>No matching memories yet.</div>';
+});
+
+loadAll();
+</script>
+</body>
+</html>
